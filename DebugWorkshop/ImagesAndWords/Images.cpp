@@ -37,37 +37,61 @@ bool WriteImage(Image* img, const char* filename)
 	return true;
 }
 
-Image *ReadImage(const char* filename)
+// i changed this func
+Image* ReadImage(const char* filename)
 {
 	std::ifstream is(filename, std::ifstream::binary);
 	if (!is)
+	{
 		return nullptr;
+	}
+
 
 	Image* img = new Image();
-
-	// read header first
 	is.read((char*)&img->header, sizeof(ImageHeader));
 
-	// calculate image size
-	uint16_t imgsize = img->header.width * img->header.height;
+	size_t w = img->header.width;
+	size_t h = img->header.height;
+
+	if (w == 0 || h == 0)
+	{
+		delete img;
+		return nullptr;
+	}
+
+	if (w > 10000 || h > 10000)
+	{
+		delete img;
+		return nullptr;
+	}
+
+	if (h != 0 && w > SIZE_MAX / h)
+	{
+		delete img;
+		return nullptr;
+	}
+
+	size_t imgsize = w * h;
 	img->data = new char[imgsize];
 
-	// read image content
-	char* tmpbuff = new char[img->header.width];
-	for (int i = 0; i < img->header.height; i++)
+	is.read(img->data, imgsize);
+	if (!is)
 	{
-		is.read(tmpbuff, img->header.width);
-		memcpy(img->data + (i * img->header.width), tmpbuff, img->header.width);
+		delete[] img->data;
+		delete img;
+		return nullptr;
 	}
+
 	return img;
 }
+
 
 void FreeImage(Image* img)
 {
 	delete img;
 }
 
-Image *GenerateDummyImage(uint16_t width, uint16_t height)
+Image* GenerateDummyImage(uint16_t width, uint16_t height)
 {
 	Image* img = new Image();
 
@@ -93,7 +117,7 @@ Image *GenerateDummyImage(uint16_t width, uint16_t height)
 
 int main()
 {
-	Image *im = ReadImage("img1.magi");
+	Image* im = ReadImage("img1.magi");
 	FreeImage(im);
 
 	return 0;
